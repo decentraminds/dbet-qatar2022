@@ -1,5 +1,5 @@
 import { WalletOutlined } from "@ant-design/icons";
-import { Button, message, Modal, Spin, Tooltip, Typography, Input, Space  } from "antd";
+import { Button, Collapse, message, Modal, Spin, Tooltip, Typography, Input, Spac, Select  } from "antd";
 import { useUserAddress } from "eth-hooks";
 import { ethers } from "ethers";
 import QR from "qrcode.react";
@@ -9,6 +9,8 @@ import Address from "./Address";
 import Balance from "./Balance";
 import QRPunkBlockie from "./QRPunkBlockie";
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
+
+import { NETWORKS } from '../constants';
 
 const bip39 = require('bip39');
 const hdkey = require('ethereumjs-wallet/hdkey');
@@ -62,6 +64,36 @@ export default function Wallet(props) {
   const [importAddress, setImportAddress] = useState();
 
   const [deleteCurrentBurner, setDeleteCurrentBurner] = useState( false );
+
+  const cachedNetwork = window.localStorage.getItem("network");
+  let targetNetwork = NETWORKS[cachedNetwork || "ethereum"]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+
+  const options = [];
+  for (const id in NETWORKS) {
+    options.push(
+      <Select.Option key={id} value={NETWORKS[id].name}>
+        <span style={{ color: NETWORKS[id].color, fontSize: 24 }}>{NETWORKS[id].name}</span>
+      </Select.Option>,
+    );
+  }
+
+  const networkSelect = (
+    <Select
+      size="large"
+      defaultValue={targetNetwork.name}
+      style={{ textAlign: "left", width: 170, fontSize: 30 }}
+      onChange={value => {
+        if (targetNetwork.chainId != NETWORKS[value].chainId) {
+          window.localStorage.setItem("network", value);
+          setTimeout(() => {
+            window.location.reload();
+          }, 1);
+        }
+      }}
+    >
+      {options}
+    </Select>
+  );
 
   useEffect(()=>{
     const calculatePK = async () => {
@@ -444,17 +476,9 @@ export default function Wallet(props) {
     }else{
       display = (
         <div>
-          {privateKeyDisplay}
-          <div style={{ marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid #CCCCCC" }}>
-            <Button
-              style={{ marginTop: 16 }}
-              onClick={() => {
-                setShowPrivate(!showPrivate);
-              }}
-            >
-              {" "}
-              {currentButton} Private Key
-            </Button>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'end'}}>
+            <span style={{fontSize: '2em', fontWeight: 'bold'}}>Network</span>
+            <div style={{paddingLeft: '12px'}}>{networkSelect}</div>
           </div>
           {extraPkDisplay ? (
             <div style={{ paddingBottom: 32, borderBottom: "1px solid #CCCCCC" }}>
@@ -488,6 +512,24 @@ export default function Wallet(props) {
           ) : (
             ""
           )}
+           <Collapse accordion>
+            <Collapse.Panel header="Settings" key="1">
+              <>
+                {privateKeyDisplay}
+                <div style={{ marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid #CCCCCC" }}>
+                  <Button
+                    style={{ marginTop: 16 }}
+                    onClick={() => {
+                      setShowPrivate(!showPrivate);
+                    }}
+                  >
+                    {" "}
+                    {currentButton} Private Key
+                  </Button>
+                </div>
+              </>
+            </Collapse.Panel>
+          </Collapse>
         </div>
       );
     }
